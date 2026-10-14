@@ -8,14 +8,16 @@ from email.mime.multipart import MIMEMultipart
 
 
 # =========================================================
-# READ STREAMLIT SECRETS
+# STREAMLIT SECRETS
 # =========================================================
 
 def get_email_config():
 
     return {
         "smtp_server": st.secrets["email"]["smtp_server"],
-        "smtp_port": int(st.secrets["email"]["smtp_port"]),
+        "smtp_port": int(
+            st.secrets["email"]["smtp_port"]
+        ),
         "sender_email": st.secrets["email"]["sender_email"],
         "username": st.secrets["email"]["username"],
         "password": st.secrets["email"]["password"],
@@ -78,7 +80,7 @@ def clean_email_list(values):
 
 
 # =========================================================
-# BUILD EMAIL
+# BUILD EMAIL MESSAGE
 # =========================================================
 
 def build_email_message(
@@ -110,7 +112,9 @@ def build_email_message(
     )
 
     if cc:
-        message["Cc"] = ", ".join(cc)
+        message["Cc"] = ", ".join(
+            cc
+        )
 
     message["Subject"] = subject
 
@@ -123,7 +127,8 @@ def build_email_message(
     )
 
     all_recipients = (
-        recipients + cc
+        recipients
+        + cc
     )
 
     return (
@@ -174,7 +179,9 @@ def send_email(
             timeout=30,
         )
 
+        server.ehlo()
         server.starttls()
+        server.ehlo()
 
         server.login(
             config["username"],
@@ -240,7 +247,7 @@ def report_subject(
 
 
 # =========================================================
-# SEND REPORT
+# SEND REPORT EMAIL
 # =========================================================
 
 def send_report_email(
@@ -259,16 +266,28 @@ def send_report_email(
     if recipients is None:
 
         if report_type == "DAILY":
-            recipients = groups["daily"]
+
+            recipients = groups[
+                "daily"
+            ]
 
         elif report_type == "WEEKLY":
-            recipients = groups["weekly"]
+
+            recipients = groups[
+                "weekly"
+            ]
 
         elif report_type == "MONTHLY":
-            recipients = groups["monthly"]
+
+            recipients = groups[
+                "monthly"
+            ]
 
         else:
-            recipients = groups["management"]
+
+            recipients = groups[
+                "management"
+            ]
 
     return send_email(
         subject=report_subject(
@@ -293,7 +312,10 @@ def send_host_alert(
     groups = get_recipient_groups()
 
     if recipients is None:
-        recipients = groups["host_alerts"]
+
+        recipients = groups[
+            "host_alerts"
+        ]
 
     body = (
         "GRAND CASINO PORTOROŽ\n"
@@ -323,10 +345,17 @@ def send_test_email(
 
     if recipient is None:
 
-        if groups["management"]:
-            recipient = groups["management"][0]
+        management = groups.get(
+            "management",
+            []
+        )
+
+        if management:
+
+            recipient = management[0]
 
         else:
+
             return {
                 "success": False,
                 "error": "No test recipient configured.",
@@ -336,8 +365,8 @@ def send_test_email(
         "Grand Casino Portorož\n"
         "Casino Host AI\n\n"
         "Test email successful.\n\n"
-        "The email notification system is connected "
-        "to Streamlit Secrets and Gmail SMTP."
+        "Streamlit Secrets and Gmail SMTP "
+        "are connected correctly."
     )
 
     return send_email(
@@ -345,5 +374,7 @@ def send_test_email(
             "TEST"
         ),
         body=body,
-        recipients=[recipient],
+        recipients=[
+            recipient
+        ],
     )

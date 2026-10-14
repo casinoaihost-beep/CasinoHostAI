@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import streamlit as st
 
 from search import (
@@ -7,8 +9,45 @@ from search import (
     guest_full_name,
 )
 
+from rules import (
+    normalize_tier,
+    get_hotel_policy,
+    calculate_hotel_coverage,
+    build_new_guest_review_ticket,
+    format_new_guest_ticket,
+    restaurant_eligibility,
+    whatsapp_url,
+    mailto_url,
+    tel_url,
+)
+
+from activity import (
+    guest_statistics,
+    guest_primary_game,
+    guest_game_type_statistics,
+    guest_visits,
+    average_days_between_visits,
+)
+
+from offers_engine import (
+    build_host_snapshot,
+    inactivity_status,
+)
+
+from reports import (
+    guest_report,
+    guest_report_text,
+    management_report,
+    management_report_text,
+)
+
+from notifications import (
+    send_test_email,
+)
+
+
 # =========================================================
-# PAGE
+# PAGE CONFIG
 # =========================================================
 
 st.set_page_config(
@@ -17,6 +56,315 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+
+# =========================================================
+# LANGUAGES
+# =========================================================
+
+LANGUAGES = {
+    "SI": "🇸🇮 Slovenščina",
+    "IT": "🇮🇹 Italiano",
+    "DE": "🇩🇪 Deutsch",
+    "HR": "🇭🇷 Hrvatski",
+    "EN": "🇬🇧 English",
+    "RU": "🇷🇺 Русский",
+    "HU": "🇭🇺 Magyar",
+    "PL": "🇵🇱 Polski",
+}
+
+
+TEXT = {
+
+    "HR": {
+        "guest_crm": "Guest CRM",
+        "system_demo": "System Demo",
+        "admin": "Admin",
+
+        "search": "VIP pretraga gosta",
+        "find": "PRONAĐI GOSTA",
+        "placeholder": "Ime gosta, Guest ID, email ili telefon...",
+        "not_found": "Gost nije pronađen.",
+        "multiple": "Pronađeno je više gostiju. Odaberi pravog gosta.",
+        "choose": "ODABERI",
+
+        "profile": "VIP profil gosta",
+        "overview": "Pregled",
+        "gaming": "Gaming",
+        "hotel": "Hotel",
+        "dining": "Restoran",
+        "automation": "CRM & automatizacija",
+        "reports": "Izvještaji",
+        "contact": "Kontakt",
+
+        "country": "Država",
+        "email": "Email",
+        "phone": "Telefon",
+        "tier": "VIP kategorija",
+        "language": "Jezik",
+
+        "visits": "Posjete",
+        "last_visit": "Zadnja posjeta",
+        "gaming_hours": "Sati igre",
+        "primary_game": "Glavna igra",
+        "average_bet": "Prosječan bet",
+        "turnover": "Turnover",
+        "winloss": "Casino Win/Loss",
+        "theoretical": "Theoretical",
+        "frequency": "Prosječna učestalost dolazaka",
+
+        "days_inactive": "Dana bez posjete",
+        "crm_status": "CRM status",
+        "contact_allowed": "Marketing kontakt dopušten",
+
+        "hotel_title": "Hotel & smještaj",
+        "external_hotel": "Grand Casino Portorož surađuje s vanjskim hotelima.",
+        "nights": "Broj noćenja",
+        "night_price": "Cijena sobe po noćenju (€)",
+        "calculate": "IZRAČUNAJ POKRIĆE",
+        "room_total": "Ukupni trošak sobe",
+        "casino_cover": "GCP pokriva",
+        "guest_difference": "Doplata gosta",
+        "extras": "Parking, minibar i ostali dodatni troškovi nisu uključeni.",
+
+        "hotel_paid": "Trošak hotela koji je gost platio (€)",
+        "loss": "Gaming loss (€)",
+        "hours": "Trajanje igre (sati)",
+        "game_type": "Vrsta igre",
+        "notes": "Napomena hosta",
+        "ticket": "KREIRAJ REVIEW TICKET",
+
+        "restaurant": "Restaurant & Dining",
+        "date": "Datum",
+        "party": "Broj osoba",
+        "meal": "Usluga",
+        "lunch": "Ručak",
+        "dinner": "Večera",
+        "eligible": "Gost ima pravo na ovu uslugu.",
+        "not_eligible": "Gost prema trenutnim pravilima nema automatsko pravo.",
+        "closed": "Restoran taj dan ne radi za odabranu uslugu.",
+        "last_arrival": "Zadnji prijem gosta",
+
+        "whatsapp": "WhatsApp",
+        "email_guest": "Email gostu",
+        "call": "Pozovi gosta",
+
+        "another": "ODABERI DRUGOG GOSTA",
+
+        "admin_pin": "Admin PIN",
+        "wrong_pin": "Pogrešan PIN.",
+        "admin_ok": "Admin pristup odobren.",
+        "send_test": "POŠALJI TEST EMAIL",
+        "email_ok": "Testni email je uspješno poslan.",
+
+        "daily": "Dnevni izvještaj",
+        "weekly": "Tjedni izvještaj",
+        "monthly": "Mjesečni izvještaj",
+    },
+
+    "SI": {
+        "guest_crm": "Guest CRM",
+        "system_demo": "System Demo",
+        "admin": "Admin",
+
+        "search": "VIP iskanje gosta",
+        "find": "POIŠČI GOSTA",
+        "placeholder": "Ime gosta, Guest ID, e-pošta ali telefon...",
+        "not_found": "Gost ni bil najden.",
+        "multiple": "Najdenih je več gostov. Izberi pravega gosta.",
+        "choose": "IZBERI",
+
+        "profile": "VIP profil gosta",
+        "overview": "Pregled",
+        "gaming": "Gaming",
+        "hotel": "Hotel",
+        "dining": "Restavracija",
+        "automation": "CRM & avtomatizacija",
+        "reports": "Poročila",
+        "contact": "Kontakt",
+
+        "country": "Država",
+        "email": "E-pošta",
+        "phone": "Telefon",
+        "tier": "VIP kategorija",
+        "language": "Jezik",
+
+        "visits": "Obiski",
+        "last_visit": "Zadnji obisk",
+        "gaming_hours": "Ure igre",
+        "primary_game": "Glavna igra",
+        "average_bet": "Povprečna stava",
+        "turnover": "Turnover",
+        "winloss": "Casino Win/Loss",
+        "theoretical": "Theoretical",
+        "frequency": "Povprečna pogostost obiskov",
+
+        "days_inactive": "Dni brez obiska",
+        "crm_status": "CRM status",
+        "contact_allowed": "Marketing kontakt dovoljen",
+
+        "hotel_title": "Hotel & nastanitev",
+        "external_hotel": "Grand Casino Portorož sodeluje z zunanjimi hoteli.",
+        "nights": "Število nočitev",
+        "night_price": "Cena sobe na noč (€)",
+        "calculate": "IZRAČUNAJ KRITJE",
+        "room_total": "Skupni strošek sobe",
+        "casino_cover": "GCP krije",
+        "guest_difference": "Doplačilo gosta",
+        "extras": "Parkiranje, minibar in drugi dodatni stroški niso vključeni.",
+
+        "hotel_paid": "Strošek hotela, ki ga je plačal gost (€)",
+        "loss": "Gaming loss (€)",
+        "hours": "Trajanje igre (ure)",
+        "game_type": "Vrsta igre",
+        "notes": "Opomba hosta",
+        "ticket": "USTVARI REVIEW TICKET",
+
+        "restaurant": "Restavracija & Dining",
+        "date": "Datum",
+        "party": "Število oseb",
+        "meal": "Storitev",
+        "lunch": "Kosilo",
+        "dinner": "Večerja",
+        "eligible": "Gost je upravičen do te storitve.",
+        "not_eligible": "Gost po trenutnih pravilih nima samodejne pravice.",
+        "closed": "Restavracija na izbrani dan ne obratuje.",
+        "last_arrival": "Zadnji sprejem gosta",
+
+        "whatsapp": "WhatsApp",
+        "email_guest": "E-pošta gostu",
+        "call": "Pokliči gosta",
+
+        "another": "IZBERI DRUGEGA GOSTA",
+
+        "admin_pin": "Admin PIN",
+        "wrong_pin": "Napačen PIN.",
+        "admin_ok": "Admin dostop odobren.",
+        "send_test": "POŠLJI TESTNI EMAIL",
+        "email_ok": "Testni email je bil poslan.",
+
+        "daily": "Dnevno poročilo",
+        "weekly": "Tedensko poročilo",
+        "monthly": "Mesečno poročilo",
+    },
+
+    "EN": {
+        "guest_crm": "Guest CRM",
+        "system_demo": "System Demo",
+        "admin": "Admin",
+
+        "search": "VIP Guest Search",
+        "find": "FIND GUEST",
+        "placeholder": "Guest name, Guest ID, email or phone...",
+        "not_found": "Guest not found.",
+        "multiple": "Multiple guests found. Select the correct guest.",
+        "choose": "SELECT",
+
+        "profile": "VIP Guest Profile",
+        "overview": "Overview",
+        "gaming": "Gaming",
+        "hotel": "Hotel",
+        "dining": "Dining",
+        "automation": "CRM & Automation",
+        "reports": "Reports",
+        "contact": "Contact",
+
+        "country": "Country",
+        "email": "Email",
+        "phone": "Telephone",
+        "tier": "VIP Tier",
+        "language": "Language",
+
+        "visits": "Visits",
+        "last_visit": "Last visit",
+        "gaming_hours": "Gaming hours",
+        "primary_game": "Primary game",
+        "average_bet": "Average bet",
+        "turnover": "Turnover",
+        "winloss": "Casino Win/Loss",
+        "theoretical": "Theoretical",
+        "frequency": "Average visit frequency",
+
+        "days_inactive": "Days inactive",
+        "crm_status": "CRM status",
+        "contact_allowed": "Marketing contact allowed",
+
+        "hotel_title": "Hotel & Accommodation",
+        "external_hotel": "Grand Casino Portorož cooperates with external hotels.",
+        "nights": "Number of nights",
+        "night_price": "Room price per night (€)",
+        "calculate": "CALCULATE COVERAGE",
+        "room_total": "Total room cost",
+        "casino_cover": "GCP coverage",
+        "guest_difference": "Guest contribution",
+        "extras": "Parking, minibar and other extras are not included.",
+
+        "hotel_paid": "Hotel cost paid by guest (€)",
+        "loss": "Gaming loss (€)",
+        "hours": "Play duration (hours)",
+        "game_type": "Game type",
+        "notes": "Host notes",
+        "ticket": "CREATE REVIEW TICKET",
+
+        "restaurant": "Restaurant & Dining",
+        "date": "Date",
+        "party": "Number of guests",
+        "meal": "Service",
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "eligible": "The guest is eligible for this service.",
+        "not_eligible": "The guest is not automatically eligible.",
+        "closed": "The restaurant is closed for this service.",
+        "last_arrival": "Last guest arrival",
+
+        "whatsapp": "WhatsApp",
+        "email_guest": "Email Guest",
+        "call": "Call Guest",
+
+        "another": "SELECT ANOTHER GUEST",
+
+        "admin_pin": "Admin PIN",
+        "wrong_pin": "Incorrect PIN.",
+        "admin_ok": "Admin access granted.",
+        "send_test": "SEND TEST EMAIL",
+        "email_ok": "Test email successfully sent.",
+
+        "daily": "Daily Report",
+        "weekly": "Weekly Report",
+        "monthly": "Monthly Report",
+    },
+}
+
+
+# Za IT/DE/RU/HU/PL trenutno koristimo EN tekst za nove
+# dashboard elemente. Jezični izbor i guest language ostaju aktivni.
+
+for code in ["IT", "DE", "RU", "HU", "PL"]:
+    TEXT[code] = dict(
+        TEXT["EN"]
+    )
+
+
+if "language" not in st.session_state:
+    st.session_state.language = "SI"
+
+
+language = st.selectbox(
+    "Language / Jezik / Lingua / Sprache",
+    list(LANGUAGES.keys()),
+    index=list(
+        LANGUAGES.keys()
+    ).index(
+        st.session_state.language
+    ),
+    format_func=lambda x:
+        LANGUAGES[x],
+)
+
+st.session_state.language = language
+
+T = TEXT[language]
+
 
 # =========================================================
 # STYLE
@@ -27,12 +375,18 @@ st.markdown("""
 
 .stApp {
     background:
-        radial-gradient(circle at top, #261d08 0%, #101010 32%, #050505 75%);
-    color: #ffffff;
+        radial-gradient(
+            circle at top,
+            #281f08 0%,
+            #111111 32%,
+            #050505 78%
+        );
+
+    color: white;
 }
 
 .block-container {
-    max-width: 1180px;
+    max-width: 1200px;
     padding-top: 1rem;
     padding-bottom: 4rem;
 }
@@ -45,228 +399,217 @@ footer {
     visibility: hidden;
 }
 
-header {
-    background: transparent !important;
-}
-
 .hero {
-    background: linear-gradient(135deg, #0a0a0a, #2b2108, #080808);
-    border: 1px solid #b9952b;
-    border-radius: 22px;
-    padding: 28px 20px;
-    text-align: center;
-    margin-bottom: 22px;
-    box-shadow: 0 0 35px rgba(212,175,55,0.12);
-}
 
-.hero-small {
-    color: #d9bd69;
-    font-size: 12px;
-    letter-spacing: 5px;
-    font-weight: 700;
+    background:
+        linear-gradient(
+            135deg,
+            #090909,
+            #2d2308,
+            #080808
+        );
+
+    border:
+        1px solid #a78928;
+
+    border-radius:
+        22px;
+
+    padding:
+        28px 20px;
+
+    text-align:
+        center;
+
+    margin-bottom:
+        22px;
+
+    box-shadow:
+        0 0 30px rgba(212,175,55,.12);
 }
 
 .hero-title {
-    color: #e4c45c;
-    font-size: 42px;
-    font-weight: 700;
-    margin-top: 8px;
+
+    color:
+        #e4c45c;
+
+    font-size:
+        40px;
+
+    font-weight:
+        700;
 }
 
-.hero-subtitle {
-    color: #ffffff;
-    font-size: 20px;
-    margin-top: 6px;
+.gold-title {
+
+    color:
+        #e4c45c;
+
+    font-size:
+        24px;
+
+    font-weight:
+        700;
+
+    margin-top:
+        22px;
+
+    margin-bottom:
+        12px;
 }
 
-.hero-info {
-    color: #c3c3c3;
-    font-size: 14px;
-    margin-top: 8px;
-}
+.card {
 
-.demo-badge {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 6px 15px;
-    border-radius: 30px;
-    border: 1px solid #b9952b;
-    color: #e5c866;
-    font-size: 11px;
-    letter-spacing: 2px;
-}
+    background:
+        linear-gradient(
+            145deg,
+            #1a1a1a,
+            #0c0c0c
+        );
 
-.section-title {
-    color: #e2c14f;
-    font-size: 24px;
-    font-weight: 700;
-    margin-top: 22px;
-    margin-bottom: 12px;
+    border:
+        1px solid #4d4020;
+
+    border-radius:
+        16px;
+
+    padding:
+        18px;
+
+    margin-bottom:
+        12px;
 }
 
 .guest-card {
-    background: linear-gradient(135deg, #191919, #0d0d0d);
-    border: 1px solid #80691f;
-    border-radius: 18px;
-    padding: 22px;
-    margin: 15px 0 20px 0;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1b1b1b,
+            #0b0b0b
+        );
+
+    border:
+        1px solid #806b29;
+
+    border-radius:
+        18px;
+
+    padding:
+        20px;
 }
 
 .guest-name {
-    font-size: 30px;
-    font-weight: 700;
-    color: #ffffff;
+
+    font-size:
+        29px;
+
+    font-weight:
+        700;
 }
 
-.guest-id {
-    color: #999999;
-    font-size: 13px;
-    margin-top: 3px;
+.gold {
+
+    color:
+        #e4c45c;
 }
 
-.badge {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 30px;
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 12px;
+.green {
+
+    color:
+        #75db87;
 }
 
-.badge-gold {
-    background: linear-gradient(90deg, #7c5c00, #d4af37);
-    color: #080808;
+.red {
+
+    color:
+        #ff7777;
 }
 
-.badge-silver {
-    background: linear-gradient(90deg, #6f6f6f, #d9d9d9);
-    color: #111111;
-}
+.muted {
 
-.badge-platinum {
-    background: linear-gradient(90deg, #9e9e9e, #eeeeee, #8c8c8c);
-    color: #090909;
-}
-
-.badge-standard {
-    border: 1px solid #777777;
-    color: #dddddd;
-}
-
-.info-box {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid #333333;
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-}
-
-.info-label {
-    color: #ad944b;
-    font-size: 11px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-.info-value {
-    color: white;
-    font-size: 16px;
-    margin-top: 5px;
-}
-
-.offer-card {
-    background: linear-gradient(145deg, #1c1c1c, #0d0d0d);
-    border: 1px solid #4b4020;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 14px;
-}
-
-.offer-title {
-    color: #e1c052;
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.offer-description {
-    color: #c8c8c8;
-    font-size: 14px;
-    margin-top: 6px;
+    color:
+        #999999;
 }
 
 div.stButton > button {
-    background: linear-gradient(100deg, #171717, #2c240d) !important;
-    color: #ead173 !important;
-    border: 1px solid #806b29 !important;
-    border-radius: 12px !important;
-    min-height: 48px;
-    font-weight: 600;
+
+    background:
+        linear-gradient(
+            100deg,
+            #171717,
+            #2c240d
+        ) !important;
+
+    color:
+        #ead173 !important;
+
+    border:
+        1px solid #806b29 !important;
+
+    border-radius:
+        12px !important;
+
+    min-height:
+        46px;
+
+    font-weight:
+        600;
 }
 
-div.stButton > button:hover {
-    background: linear-gradient(100deg, #30270d, #4c3b0f) !important;
-    border-color: #d4af37 !important;
-    color: white !important;
+div[data-testid="stLinkButton"] a {
+
+    background:
+        linear-gradient(
+            100deg,
+            #171717,
+            #2c240d
+        ) !important;
+
+    color:
+        #ead173 !important;
+
+    border:
+        1px solid #806b29 !important;
+
+    border-radius:
+        12px !important;
 }
 
-div[data-baseweb="input"] > div {
-    background-color: #151515 !important;
-    border: 1px solid #5d4c1c !important;
-    border-radius: 12px !important;
-}
 
-input {
-    color: white !important;
-}
-
-hr {
-    border-color: #332b16 !important;
-}
-
-@media (max-width: 700px) {
-
-    .block-container {
-        padding-left: 0.7rem;
-        padding-right: 0.7rem;
-        padding-top: 0.6rem;
-    }
-
-    .hero {
-        padding: 22px 10px;
-        border-radius: 16px;
-    }
+@media(max-width:700px) {
 
     .hero-title {
         font-size: 27px;
     }
 
-    .hero-subtitle {
-        font-size: 16px;
+    .block-container {
+        padding-left: .7rem;
+        padding-right: .7rem;
     }
 
     .guest-name {
         font-size: 23px;
-    }
-
-    .guest-card {
-        padding: 16px;
     }
 }
 
 </style>
 """, unsafe_allow_html=True)
 
+
 # =========================================================
-# PROMO IMAGE
+# IMAGE
 # =========================================================
 
-POSTER = "casino_demo_poster.png"
+if os.path.exists(
+    "casino_demo_poster.png"
+):
 
-if os.path.exists(POSTER):
     st.image(
-        POSTER,
+        "casino_demo_poster.png",
         use_container_width=True
     )
+
 
 # =========================================================
 # HERO
@@ -275,621 +618,1630 @@ if os.path.exists(POSTER):
 st.markdown(
     """
 <div class="hero">
-<div class="hero-small">CASINO HOST AI</div>
-<div class="hero-title">GRAND CASINO PORTOROŽ</div>
-<div class="hero-subtitle">Intelligent VIP Guest Experience</div>
-<div class="hero-info">
-Hotel • Casino • Dining • VIP Events • Promotions • Transfers
+
+<div style="
+color:#d9bd69;
+letter-spacing:5px;
+font-size:12px;
+font-weight:700;
+">
+CASINO HOST AI
 </div>
-<div class="demo-badge">DEMO CONCEPT</div>
+
+<div class="hero-title">
+GRAND CASINO PORTOROŽ
+</div>
+
+<div style="
+font-size:18px;
+">
+Intelligent VIP Guest Experience
+</div>
+
+<br>
+
+<div style="
+display:inline-block;
+border:1px solid #a78928;
+border-radius:25px;
+padding:6px 15px;
+color:#e4c45c;
+font-size:11px;
+letter-spacing:2px;
+">
+DEMO CONCEPT
+</div>
+
 </div>
 """,
     unsafe_allow_html=True
 )
+
 
 # =========================================================
 # STATE
 # =========================================================
 
 if "selected_guest" not in st.session_state:
+
     st.session_state.selected_guest = None
 
+
 if "selected_guest_id" not in st.session_state:
+
     st.session_state.selected_guest_id = None
 
-if "active_section" not in st.session_state:
-    st.session_state.active_section = "Dashboard"
 
 # =========================================================
-# HELPERS
+# MAIN MENU
 # =========================================================
 
-def value(guest, *keys):
-    return get_guest_value(
-        guest,
-        *keys,
-        default="-"
+main_mode = st.radio(
+    "",
+    [
+        T["guest_crm"],
+        T["system_demo"],
+        T["admin"],
+    ],
+    horizontal=True,
+)
+
+
+# =========================================================
+# SYSTEM DEMO
+# =========================================================
+
+if main_mode == T["system_demo"]:
+
+    st.markdown(
+        """
+<div class="gold-title">
+🚀 Casino Host AI — System Capabilities
+</div>
+""",
+        unsafe_allow_html=True
     )
 
-def tier_badge(tier):
 
-    tier_lower = str(tier).lower()
+    capabilities = [
 
-    if tier_lower == "gold":
-        css = "badge-gold"
+        (
+            "Guest Database",
+            "ACTIVE",
+            "80 demo guests across Chairman, VIP, Gold, Silver and New tiers."
+        ),
 
-    elif tier_lower == "silver":
-        css = "badge-silver"
+        (
+            "Smart Guest Search",
+            "ACTIVE",
+            "Name, Guest ID, email, phone, upper/lower case and duplicate names."
+        ),
 
-    elif tier_lower == "platinum":
-        css = "badge-platinum"
+        (
+            "Multilingual Platform",
+            "ACTIVE",
+            "SI, IT, DE, HR, EN, RU, HU and PL language architecture."
+        ),
 
-    else:
-        css = "badge-standard"
+        (
+            "Gaming History",
+            "ACTIVE",
+            "Visits, gaming sessions, game types, playing time and host activity."
+        ),
 
-    return f"""
-<span class="badge {css}">
-{str(tier).upper()} VIP
-</span>
-"""
+        (
+            "Gaming Analytics",
+            "ACTIVE",
+            "Average bet, turnover, casino Win/Loss, theoretical and preferred game."
+        ),
+
+        (
+            "Hotel Rules Engine",
+            "ACTIVE",
+            "Gold, VIP, Silver, Chairman and New Guest hotel logic."
+        ),
+
+        (
+            "Restaurant Rules",
+            "ACTIVE",
+            "Tier eligibility, lunch/dinner schedules and last guest arrival."
+        ),
+
+        (
+            "CRM Automation",
+            "ACTIVE",
+            "14 / 30 / 60 day inactivity monitoring and host follow-up logic."
+        ),
+
+        (
+            "Responsible Contact Controls",
+            "ACTIVE",
+            "Marketing permission, self-exclusion, blocked and do-not-contact checks."
+        ),
+
+        (
+            "Daily Reports",
+            "ACTIVE",
+            "Guest activity, gaming metrics, hotel cost and casino coverage."
+        ),
+
+        (
+            "Weekly Reports",
+            "ACTIVE",
+            "Aggregated operational reporting."
+        ),
+
+        (
+            "Monthly Reports",
+            "ACTIVE",
+            "Monthly management overview."
+        ),
+
+        (
+            "Email Engine",
+            "ACTIVE",
+            "Secure Gmail SMTP through Streamlit Secrets."
+        ),
+
+        (
+            "Scheduled Email Automation",
+            "IN DEVELOPMENT",
+            "Automatic timed execution of daily, weekly and monthly reports."
+        ),
+
+        (
+            "AI Recommendation Engine",
+            "IN DEVELOPMENT",
+            "Guest snapshots and rule-based host recommendations."
+        ),
+
+        (
+            "Production Database",
+            "NEXT",
+            "Persistent cloud database replacing demo Python data."
+        ),
+
+        (
+            "WhatsApp Business API",
+            "NEXT",
+            "Approved automated communication workflows."
+        ),
+
+        (
+            "Role-Based Login",
+            "NEXT",
+            "Host, management and administrator access levels."
+        ),
+    ]
+
+
+    for (
+        title,
+        status,
+        description
+    ) in capabilities:
+
+        if status == "ACTIVE":
+
+            status_color = "#75db87"
+
+        elif status == "IN DEVELOPMENT":
+
+            status_color = "#e4c45c"
+
+        else:
+
+            status_color = "#999999"
+
+
+        st.markdown(
+            f"""
+<div class="card">
+
+<div style="
+font-size:19px;
+font-weight:700;
+color:#e4c45c;
+">
+{title}
+</div>
+
+<div style="
+font-size:12px;
+font-weight:700;
+color:{status_color};
+margin-top:5px;
+">
+{status}
+</div>
+
+<br>
+
+{description}
+
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+
+    st.stop()
+
 
 # =========================================================
-# SEARCH
+# ADMIN
+# =========================================================
+
+if main_mode == T["admin"]:
+
+    st.markdown(
+        """
+<div class="gold-title">
+🔐 Casino Host AI Admin
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    try:
+
+        correct_pin = str(
+            st.secrets[
+                "admin"
+            ][
+                "pin"
+            ]
+        )
+
+    except Exception:
+
+        st.error(
+            "Admin PIN nije pronađen u Streamlit Secrets."
+        )
+
+        st.code(
+            '[admin]\npin = "1234"'
+        )
+
+        st.stop()
+
+
+    pin = st.text_input(
+        T["admin_pin"],
+        type="password",
+    )
+
+
+    if not pin:
+
+        st.stop()
+
+
+    if pin != correct_pin:
+
+        st.error(
+            T["wrong_pin"]
+        )
+
+        st.stop()
+
+
+    st.success(
+        T["admin_ok"]
+    )
+
+
+    admin_function = st.selectbox(
+        "Admin function",
+        [
+            "Email Test",
+            T["daily"],
+            T["weekly"],
+            T["monthly"],
+        ]
+    )
+
+
+    # -----------------------------------------------------
+    # EMAIL TEST
+    # -----------------------------------------------------
+
+    if admin_function == "Email Test":
+
+        st.info(
+            "Test Gmail SMTP + Streamlit Secrets connection."
+        )
+
+        if st.button(
+            T["send_test"],
+            use_container_width=True
+        ):
+
+            with st.spinner(
+                "Sending..."
+            ):
+
+                result = (
+                    send_test_email()
+                )
+
+
+            if result.get(
+                "success"
+            ):
+
+                st.success(
+                    T["email_ok"]
+                )
+
+            else:
+
+                st.error(
+                    result.get(
+                        "error",
+                        "Unknown email error."
+                    )
+                )
+
+
+    # -----------------------------------------------------
+    # REPORT PREVIEW
+    # -----------------------------------------------------
+
+    else:
+
+        if admin_function == T["daily"]:
+
+            report_type = "DAILY"
+
+        elif admin_function == T["weekly"]:
+
+            report_type = "WEEKLY"
+
+        else:
+
+            report_type = "MONTHLY"
+
+
+        report = management_report(
+            report_type
+        )
+
+
+        report_text = management_report_text(
+            report
+        )
+
+
+        st.code(
+            report_text
+        )
+
+
+    st.stop()
+
+
+# =========================================================
+# GUEST SEARCH
 # =========================================================
 
 st.markdown(
-    '<div class="section-title">🔎 VIP Guest Search</div>',
+    f"""
+<div class="gold-title">
+🔎 {T["search"]}
+</div>
+""",
     unsafe_allow_html=True
 )
 
+
 query = st.text_input(
-    "Search guest",
+    "guest_search",
     label_visibility="collapsed",
-    placeholder="Ime gosta, Guest ID, email ili telefon..."
+    placeholder=T[
+        "placeholder"
+    ],
 )
 
+
 if st.button(
-    "🔍 PRONAĐI GOSTA",
+    f'🔎 {T["find"]}',
     use_container_width=True
 ):
 
     if not query.strip():
 
         st.warning(
-            "Upiši ime gosta, Guest ID, email ili telefon."
+            T[
+                "placeholder"
+            ]
         )
 
     else:
 
-        results = search_guests(query)
+        results = search_guests(
+            query
+        )
+
 
         if not results:
 
             st.error(
-                "Gost nije pronađen."
+                T[
+                    "not_found"
+                ]
             )
 
-        elif len(results) == 1:
 
-            guest_id, guest = results[0]
+        elif len(
+            results
+        ) == 1:
 
-            st.session_state.selected_guest = guest
-            st.session_state.selected_guest_id = guest_id
-            st.session_state.active_section = "Dashboard"
+            (
+                guest_id,
+                guest
+            ) = results[0]
+
+
+            st.session_state.selected_guest = (
+                guest
+            )
+
+            st.session_state.selected_guest_id = (
+                guest_id
+            )
 
             st.rerun()
+
 
         else:
 
             st.warning(
-                f"Pronađeno je {len(results)} gostiju."
+                T[
+                    "multiple"
+                ]
             )
 
-            for guest_id, guest in results:
 
-                name = guest_full_name(guest)
+            for (
+                guest_id,
+                guest
+            ) in results:
 
-                tier = value(
-                    guest,
-                    "tier"
+                name = guest_full_name(
+                    guest
                 )
 
-                country = value(
+                tier = get_guest_value(
+                    guest,
+                    "tier",
+                    default="-"
+                )
+
+                country = get_guest_value(
                     guest,
                     "country",
-                    "nationality"
+                    "nationality",
+                    default="-"
                 )
 
+
                 with st.expander(
-                    f"{name} • {guest_id} • {tier} • {country}"
+                    f"{name} • {guest_id} • {tier.upper()} • {country}"
                 ):
 
                     st.write(
-                        "Email:",
-                        value(
+                        T["email"],
+                        get_guest_value(
                             guest,
-                            "email"
+                            "email",
+                            default="-"
                         )
                     )
 
                     st.write(
-                        "Telefon:",
-                        value(
+                        T["phone"],
+                        get_guest_value(
                             guest,
                             "phone",
-                            "telephone",
-                            "mobile"
+                            "mobile",
+                            default="-"
                         )
                     )
 
+
                     if st.button(
-                        f"ODABERI {name.upper()}",
-                        key=f"choose_{guest_id}",
+                        f'{T["choose"]} {name}',
+                        key=f"guest_{guest_id}",
                         use_container_width=True
                     ):
 
-                        st.session_state.selected_guest = guest
-                        st.session_state.selected_guest_id = guest_id
-                        st.session_state.active_section = "Dashboard"
+                        st.session_state.selected_guest = (
+                            guest
+                        )
+
+                        st.session_state.selected_guest_id = (
+                            guest_id
+                        )
 
                         st.rerun()
+
 
 # =========================================================
 # SELECTED GUEST
 # =========================================================
 
-guest = st.session_state.selected_guest
-guest_id = st.session_state.selected_guest_id
+guest = (
+    st.session_state.selected_guest
+)
 
-if guest:
+guest_id = (
+    st.session_state.selected_guest_id
+)
 
-    st.divider()
 
-    name = guest_full_name(guest)
+if not guest:
 
-    tier = value(
-        guest,
-        "tier"
+    st.stop()
+
+
+name = guest_full_name(
+    guest
+)
+
+tier = get_guest_value(
+    guest,
+    "tier",
+    default="-"
+)
+
+country = get_guest_value(
+    guest,
+    "country",
+    "nationality",
+    default="-"
+)
+
+email = get_guest_value(
+    guest,
+    "email",
+    default="-"
+)
+
+phone = get_guest_value(
+    guest,
+    "phone",
+    "mobile",
+    default="-"
+)
+
+guest_language = get_guest_value(
+    guest,
+    "language",
+    default="-"
+)
+
+
+# =========================================================
+# PROFILE
+# =========================================================
+
+st.markdown(
+    f"""
+<div class="gold-title">
+👤 {T["profile"]}
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+
+st.markdown(
+    f"""
+<div class="guest-card">
+
+<div class="guest-name">
+{name}
+</div>
+
+<div class="muted">
+Guest ID: {guest_id}
+</div>
+
+<br>
+
+<b>{T["tier"]}:</b>
+<span class="gold">
+{str(tier).upper()}
+</span>
+
+<br>
+
+<b>{T["country"]}:</b>
+{country}
+
+<br>
+
+<b>{T["language"]}:</b>
+{guest_language}
+
+<br>
+
+<b>{T["email"]}:</b>
+{email}
+
+<br>
+
+<b>{T["phone"]}:</b>
+{phone}
+
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# SECTION MENU
+# =========================================================
+
+section = st.selectbox(
+    "Guest section",
+    [
+        T["overview"],
+        T["gaming"],
+        T["hotel"],
+        T["dining"],
+        T["automation"],
+        T["reports"],
+        T["contact"],
+    ]
+)
+
+
+# =========================================================
+# OVERVIEW
+# =========================================================
+
+if section == T["overview"]:
+
+    stats = guest_statistics(
+        guest_id
     )
 
-    country = value(
-        guest,
-        "country",
-        "nationality"
+    inactive = inactivity_status(
+        guest_id
     )
 
-    email = value(
-        guest,
-        "email"
+    primary_game = guest_primary_game(
+        guest_id
     )
 
-    phone = value(
-        guest,
-        "phone",
-        "telephone",
-        "mobile"
+    frequency = average_days_between_visits(
+        guest_id
     )
 
-    st.markdown(
-        '<div class="section-title">👤 VIP Guest Profile</div>',
-        unsafe_allow_html=True
+
+    c1, c2, c3 = st.columns(
+        3
     )
+
+    c1.metric(
+        T["visits"],
+        stats.get(
+            "visits",
+            0
+        )
+    )
+
+    c2.metric(
+        T["gaming_hours"],
+        f'{stats.get("total_gaming_hours", 0):.1f} h'
+    )
+
+    c3.metric(
+        T["primary_game"],
+        primary_game
+        or "-"
+    )
+
+
+    c4, c5, c6 = st.columns(
+        3
+    )
+
+    c4.metric(
+        T["average_bet"],
+        f'€{stats.get("average_bet", 0):,.2f}'
+    )
+
+    c5.metric(
+        T["turnover"],
+        f'€{stats.get("turnover", 0):,.2f}'
+    )
+
+    c6.metric(
+        T["theoretical"],
+        f'€{stats.get("theoretical_value", 0):,.2f}'
+    )
+
 
     st.markdown(
         f"""
-<div class="guest-card">
-<div class="guest-name">{name}</div>
-<div class="guest-id">Guest ID: {guest_id}</div>
-{tier_badge(tier)}
+<div class="card">
+
+<b>{T["winloss"]}:</b>
+€{stats.get("casino_win_loss", 0):,.2f}
+
+<br><br>
+
+<b>{T["days_inactive"]}:</b>
+{inactive.get("days_since_last_visit")}
+
+<br>
+
+<b>{T["crm_status"]}:</b>
+{inactive.get("level")}
+
+<br>
+
+<b>{T["frequency"]}:</b>
+{
+    f'{frequency:.1f} days'
+    if frequency is not None
+    else '-'
+}
+
 </div>
 """,
         unsafe_allow_html=True
     )
 
-    col1, col2 = st.columns(2)
 
-    with col1:
+# =========================================================
+# GAMING
+# =========================================================
 
-        st.markdown(
-            f"""
-<div class="info-box">
-<div class="info-label">Country</div>
-<div class="info-value">{country}</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            f"""
-<div class="info-box">
-<div class="info-label">Email</div>
-<div class="info-value">{email}</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-    with col2:
-
-        st.markdown(
-            f"""
-<div class="info-box">
-<div class="info-label">VIP Tier</div>
-<div class="info-value">{tier}</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            f"""
-<div class="info-box">
-<div class="info-label">Telephone</div>
-<div class="info-value">{phone}</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-    # =====================================================
-    # SERVICES
-    # =====================================================
+elif section == T["gaming"]:
 
     st.markdown(
-        '<div class="section-title">✨ Casino Host Services</div>',
+        """
+<div class="gold-title">
+🎰 Gaming History & Analytics
+</div>
+""",
         unsafe_allow_html=True
     )
 
-    row1 = st.columns(3)
 
-    with row1[0]:
+    stats = guest_statistics(
+        guest_id
+    )
 
-        if st.button(
-            "🏨 HOTEL",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Hotel"
-            st.rerun()
+    game_stats = (
+        guest_game_type_statistics(
+            guest_id
+        )
+    )
 
-    with row1[1]:
 
-        if st.button(
-            "🎁 PROMOCIJE",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Promotions"
-            st.rerun()
+    c1, c2, c3, c4 = st.columns(
+        4
+    )
 
-    with row1[2]:
+    c1.metric(
+        T["gaming_hours"],
+        f'{stats.get("total_gaming_hours", 0):.1f}'
+    )
 
-        if st.button(
-            "🥂 VIP EVENTS",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Events"
-            st.rerun()
+    c2.metric(
+        T["average_bet"],
+        f'€{stats.get("average_bet", 0):,.2f}'
+    )
 
-    row2 = st.columns(3)
+    c3.metric(
+        T["winloss"],
+        f'€{stats.get("casino_win_loss", 0):,.2f}'
+    )
 
-    with row2[0]:
+    c4.metric(
+        T["theoretical"],
+        f'€{stats.get("theoretical_value", 0):,.2f}'
+    )
 
-        if st.button(
-            "🍽️ DINING",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Dining"
-            st.rerun()
 
-    with row2[1]:
+    if game_stats:
 
-        if st.button(
-            "🎰 CASINO OFFERS",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Casino"
-            st.rerun()
+        rows = []
 
-    with row2[2]:
+        for (
+            game_type,
+            values
+        ) in game_stats.items():
 
-        if st.button(
-            "🚘 VIP TRANSFER",
-            use_container_width=True
-        ):
-            st.session_state.active_section = "Transfer"
-            st.rerun()
+            rows.append({
+                "Game":
+                    game_type,
 
-    active = st.session_state.active_section
+                "Sessions":
+                    values.get(
+                        "sessions",
+                        0
+                    ),
 
-    # =====================================================
-    # DASHBOARD
-    # =====================================================
+                "Hours":
+                    round(
+                        values.get(
+                            "hours",
+                            0
+                        ),
+                        1
+                    ),
 
-    if active == "Dashboard":
+                "Turnover €":
+                    round(
+                        values.get(
+                            "turnover",
+                            0
+                        ),
+                        2
+                    ),
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Personalised VIP Experience</div>
-<div class="offer-description">
-Odaberi jednu od usluga iznad kako bi sustav prikazao
-ponude i pogodnosti za odabranog gosta.
-</div>
+                "Win/Loss €":
+                    round(
+                        values.get(
+                            "casino_win_loss",
+                            0
+                        ),
+                        2
+                    ),
+
+                "Theoretical €":
+                    round(
+                        values.get(
+                            "theoretical_value",
+                            0
+                        ),
+                        2
+                    ),
+            })
+
+
+        st.dataframe(
+            rows,
+            use_container_width=True,
+            hide_index=True
+        )
+
+
+    st.markdown(
+        """
+<div class="gold-title">
+🗓️ Visit History
 </div>
 """,
-            unsafe_allow_html=True
+        unsafe_allow_html=True
+    )
+
+
+    visits = guest_visits(
+        guest_id
+    )
+
+
+    if not visits:
+
+        st.info(
+            "No visit history."
         )
 
-    # =====================================================
-    # HOTEL
-    # =====================================================
 
-    elif active == "Hotel":
+    for visit in visits:
 
-        st.markdown(
-            '<div class="section-title">🏨 Hotel & Accommodation</div>',
-            unsafe_allow_html=True
+        arrival = visit.get(
+            "arrival"
         )
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">VIP Hotel Stay</div>
-<div class="offer-description">
-Provjera raspoloživih soba, complimentary boravka,
-VIP smještaja i posebnih casino cijena.
-</div>
+        arrival_text = (
+            arrival.strftime(
+                "%d.%m.%Y %H:%M"
+            )
+            if arrival
+            else "-"
+        )
+
+
+        title = (
+            f'{arrival_text} • '
+            f'{visit.get("visit_type", "Regular")} • '
+            f'{visit.get("host", "-")}'
+        )
+
+
+        with st.expander(
+            title
+        ):
+
+            hotel = visit.get(
+                "hotel",
+                {}
+            )
+
+
+            st.write(
+                "**Promotion:**",
+                visit.get(
+                    "promotion",
+                    "-"
+                )
+                or "-"
+            )
+
+            st.write(
+                "**Hotel:**",
+                hotel.get(
+                    "name",
+                    "-"
+                )
+                or "-"
+            )
+
+            st.write(
+                "**Hotel nights:**",
+                hotel.get(
+                    "nights",
+                    0
+                )
+            )
+
+            st.write(
+                "**Hotel total:**",
+                f'€{hotel.get("total_cost", 0):,.2f}'
+            )
+
+            st.write(
+                "**GCP coverage:**",
+                f'€{hotel.get("casino_coverage", 0):,.2f}'
+            )
+
+
+            games = visit.get(
+                "games",
+                []
+            )
+
+
+            for game in games:
+
+                st.markdown(
+                    f"""
+<div class="card">
+
+<b class="gold">
+{game.get("game_type", "-")}
+</b>
+
+<br><br>
+
+Duration:
+{game.get("duration_hours", 0):.1f} h
+
+<br>
+
+Average bet:
+€{game.get("average_bet", 0):,.2f}
+
+<br>
+
+Turnover:
+€{game.get("turnover", 0):,.2f}
+
+<br>
+
+Casino Win/Loss:
+€{game.get("casino_win_loss", 0):,.2f}
+
+<br>
+
+Theoretical:
+€{game.get("theoretical_value", 0):,.2f}
+
 </div>
 """,
-            unsafe_allow_html=True
+                    unsafe_allow_html=True
+                )
+
+
+# =========================================================
+# HOTEL
+# =========================================================
+
+elif section == T["hotel"]:
+
+    st.markdown(
+        f"""
+<div class="gold-title">
+🏨 {T["hotel_title"]}
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    st.info(
+        T["external_hotel"]
+    )
+
+
+    tier_normalized = normalize_tier(
+        tier
+    )
+
+
+    policy = get_hotel_policy(
+        tier_normalized
+    )
+
+
+    if tier_normalized == "gold":
+
+        st.success(
+            "Gold: max €150/night × 2 nights = €300."
         )
 
-        st.date_input(
-            "Datum dolaska"
+    elif tier_normalized == "vip":
+
+        st.success(
+            "VIP: max €200/night × 3 nights = €600."
         )
 
-        st.number_input(
-            "Broj noćenja",
+    elif tier_normalized == "silver":
+
+        st.warning(
+            "Silver: no automatic hotel benefit."
+        )
+
+    elif tier_normalized == "chairman":
+
+        st.info(
+            "Chairman: host / management approval."
+        )
+
+    elif tier_normalized == "new":
+
+        st.info(
+            "New guest pays hotel first. Reimbursement can be reviewed after play."
+        )
+
+
+    if policy.get(
+        "type"
+    ) == "fixed_cap":
+
+        nights = st.number_input(
+            T["nights"],
             min_value=1,
             max_value=30,
             value=1
         )
 
-        st.button(
-            "🔎 PROVJERI RASPOLOŽIVOST",
+
+        price = st.number_input(
+            T["night_price"],
+            min_value=0.0,
+            value=150.0,
+            step=10.0
+        )
+
+
+        if st.button(
+            T["calculate"],
             use_container_width=True
+        ):
+
+            result = calculate_hotel_coverage(
+                tier,
+                nights,
+                price
+            )
+
+
+            c1, c2, c3 = st.columns(
+                3
+            )
+
+            c1.metric(
+                T["room_total"],
+                f'€{result["total_room_cost"]:,.2f}'
+            )
+
+            c2.metric(
+                T["casino_cover"],
+                f'€{result["casino_covered"]:,.2f}'
+            )
+
+            c3.metric(
+                T["guest_difference"],
+                f'€{result["guest_room_difference"]:,.2f}'
+            )
+
+
+            st.warning(
+                T["extras"]
+            )
+
+
+    elif policy.get(
+        "type"
+    ) == "post_play_review":
+
+        hotel_paid = st.number_input(
+            T["hotel_paid"],
+            min_value=0.0,
+            value=150.0
         )
 
-    # =====================================================
-    # PROMOTIONS
-    # =====================================================
 
-    elif active == "Promotions":
-
-        st.markdown(
-            '<div class="section-title">🎁 VIP Promotions</div>',
-            unsafe_allow_html=True
+        loss = st.number_input(
+            T["loss"],
+            min_value=0.0,
+            value=0.0
         )
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">VIP Weekend Experience</div>
-<div class="offer-description">
-Casino experience • Dinner invitation • Personalised host service
-</div>
-</div>
-""",
-            unsafe_allow_html=True
+
+        hours = st.number_input(
+            T["hours"],
+            min_value=0.0,
+            value=0.0,
+            step=.5
         )
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Exclusive Guest Promotion</div>
-<div class="offer-description">
-Posebna ponuda prilagođena VIP statusu gosta.
-</div>
-</div>
-""",
-            unsafe_allow_html=True
+
+        game_type = st.selectbox(
+            T["game_type"],
+            [
+                "Slots",
+                "Roulette",
+                "Blackjack",
+                "Baccarat",
+                "Poker",
+                "Mixed Play",
+                "Other",
+            ]
         )
 
-    # =====================================================
-    # EVENTS
-    # =====================================================
 
-    elif active == "Events":
-
-        st.markdown(
-            '<div class="section-title">🥂 VIP Events</div>',
-            unsafe_allow_html=True
+        notes = st.text_area(
+            T["notes"]
         )
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Saturday VIP Dinner & Casino Night</div>
-<div class="offer-description">
-Ekskluzivna večera i premium casino iskustvo.
-</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
 
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Private Tournament Invitation</div>
-<div class="offer-description">
-Poziv za odabrane premium goste.
-</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-    # =====================================================
-    # DINING
-    # =====================================================
-
-    elif active == "Dining":
-
-        st.markdown(
-            '<div class="section-title">🍽️ VIP Dining</div>',
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Complimentary Dinner</div>
-<div class="offer-description">
-VIP rezervacija stola i posebna dining ponuda.
-</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-        st.number_input(
-            "Broj osoba",
-            min_value=1,
-            max_value=20,
-            value=2
-        )
-
-        st.button(
-            "🍽️ REZERVIRAJ STOL",
+        if st.button(
+            T["ticket"],
             use_container_width=True
-        )
+        ):
 
-    # =====================================================
-    # CASINO
-    # =====================================================
-
-    elif active == "Casino":
-
-        st.markdown(
-            '<div class="section-title">🎰 Personalised Casino Offers</div>',
-            unsafe_allow_html=True
-        )
-
-        if str(tier).lower() == "platinum":
-
-            recommendation = (
-                "Premium Platinum Experience • VIP Host • "
-                "Exclusive Casino Benefits"
+            ticket = build_new_guest_review_ticket(
+                name,
+                guest_id,
+                hotel_paid,
+                loss,
+                hours,
+                game_type,
+                notes,
             )
 
-        elif str(tier).lower() == "gold":
 
-            recommendation = (
-                "Gold VIP Experience • Dinner Invitation • "
-                "Special Casino Promotion"
+            ticket_text = format_new_guest_ticket(
+                ticket
             )
 
-        elif str(tier).lower() == "silver":
 
-            recommendation = (
-                "Silver Upgrade Promotion • Special Casino Benefits"
+            st.code(
+                ticket_text
             )
 
-        else:
 
-            recommendation = (
-                "Personalised casino offer based on guest profile."
+            st.link_button(
+                "💬 WhatsApp Host",
+                whatsapp_url(
+                    ticket_text
+                ),
+                use_container_width=True
             )
 
-        st.markdown(
-            f"""
-<div class="offer-card">
-<div class="offer-title">AI Recommended Offer</div>
-<div class="offer-description">
-{recommendation}
-</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
 
-    # =====================================================
-    # TRANSFER
-    # =====================================================
+# =========================================================
+# DINING
+# =========================================================
 
-    elif active == "Transfer":
-
-        st.markdown(
-            '<div class="section-title">🚘 VIP Transfer</div>',
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            """
-<div class="offer-card">
-<div class="offer-title">Private VIP Transfer</div>
-<div class="offer-description">
-Organizacija prijevoza gosta do Grand Casino Portorož,
-hotela ili druge lokacije.
-</div>
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-        st.text_input(
-            "Mjesto preuzimanja"
-        )
-
-        st.button(
-            "🚘 ORGANIZIRAJ TRANSFER",
-            use_container_width=True
-        )
-
-    # =====================================================
-    # CONTACT
-    # =====================================================
-
-    st.divider()
+elif section == T["dining"]:
 
     st.markdown(
-        '<div class="section-title">📲 Contact Guest</div>',
+        f"""
+<div class="gold-title">
+🍽️ {T["restaurant"]}
+</div>
+""",
         unsafe_allow_html=True
     )
 
-    c1, c2, c3 = st.columns(3)
 
-    with c1:
-        st.button(
-            "💬 WhatsApp",
+    meal = st.selectbox(
+        T["meal"],
+        [
+            "dinner",
+            "lunch",
+        ],
+        format_func=lambda x:
+            T["dinner"]
+            if x == "dinner"
+            else T["lunch"]
+    )
+
+
+    booking_date = st.date_input(
+        T["date"]
+    )
+
+
+    party_size = st.number_input(
+        T["party"],
+        min_value=1,
+        max_value=20,
+        value=2
+    )
+
+
+    check = restaurant_eligibility(
+        tier,
+        meal,
+        booking_date.weekday()
+    )
+
+
+    st.markdown(
+        f"""
+<div class="card">
+
+<b>
+{check["from"]} – {check["to"]}
+</b>
+
+<br>
+
+{T["last_arrival"]}:
+<b>
+{check["last_arrival"]}
+</b>
+
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    if not check[
+        "service_open"
+    ]:
+
+        st.error(
+            T["closed"]
+        )
+
+
+    elif not check[
+        "tier_allowed"
+    ]:
+
+        st.warning(
+            T["not_eligible"]
+        )
+
+
+    else:
+
+        st.success(
+            T["eligible"]
+        )
+
+
+        reservation = (
+            "GCP RESTAURANT RESERVATION\n\n"
+            f"Guest: {name}\n"
+            f"Guest ID: {guest_id}\n"
+            f"Tier: {tier}\n"
+            f"Date: {booking_date}\n"
+            f"Service: {meal}\n"
+            f"Persons: {party_size}"
+        )
+
+
+        st.link_button(
+            "💬 Prepare reservation",
+            whatsapp_url(
+                reservation
+            ),
             use_container_width=True
         )
 
-    with c2:
-        st.button(
-            "✉️ Email",
-            use_container_width=True
+
+# =========================================================
+# CRM AUTOMATION
+# =========================================================
+
+elif section == T["automation"]:
+
+    st.markdown(
+        """
+<div class="gold-title">
+🤖 CRM & Host Automation
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    snapshot = build_host_snapshot(
+        guest_id=guest_id,
+        tier=tier,
+
+        marketing_allowed=guest.get(
+            "marketing_allowed",
+            True
+        ),
+
+        self_excluded=guest.get(
+            "self_excluded",
+            False
+        ),
+
+        blocked=guest.get(
+            "blocked",
+            False
+        ),
+
+        do_not_contact=guest.get(
+            "do_not_contact",
+            False
+        ),
+    )
+
+
+    inactive = snapshot.get(
+        "inactivity",
+        {}
+    )
+
+
+    c1, c2 = st.columns(
+        2
+    )
+
+
+    c1.metric(
+        T["days_inactive"],
+        inactive.get(
+            "days_since_last_visit"
+        )
+        if inactive.get(
+            "days_since_last_visit"
+        ) is not None
+        else "-"
+    )
+
+
+    c2.metric(
+        T["crm_status"],
+        inactive.get(
+            "level",
+            "-"
+        )
+    )
+
+
+    contact_ok = snapshot.get(
+        "contact_allowed",
+        False
+    )
+
+
+    if contact_ok:
+
+        st.success(
+            "Marketing / host contact allowed."
         )
 
-    with c3:
-        st.button(
-            "📞 Call",
-            use_container_width=True
+    else:
+
+        st.error(
+            "Marketing contact blocked for this guest."
         )
 
-    st.divider()
 
-    if st.button(
-        "← ODABERI DRUGOG GOSTA",
+    st.markdown(
+        """
+<div class="gold-title">
+Host Actions
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    actions = snapshot.get(
+        "host_actions",
+        []
+    )
+
+
+    for action in actions:
+
+        st.markdown(
+            f"""
+<div class="card">
+
+<b class="gold">
+{action.get("title", action.get("action", "-"))}
+</b>
+
+<br><br>
+
+Priority:
+<b>{action.get("priority", "-")}</b>
+
+<br>
+
+{action.get("message", "")}
+
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+
+# =========================================================
+# REPORTS
+# =========================================================
+
+elif section == T["reports"]:
+
+    st.markdown(
+        """
+<div class="gold-title">
+📊 Guest Report
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    report = guest_report(
+        guest_id,
+        guest
+    )
+
+
+    text_report = guest_report_text(
+        report
+    )
+
+
+    st.code(
+        text_report
+    )
+
+
+    stats = guest_statistics(
+        guest_id
+    )
+
+
+    c1, c2, c3 = st.columns(
+        3
+    )
+
+
+    c1.metric(
+        "Hotel Cost",
+        f'€{stats.get("hotel_total_cost", 0):,.2f}'
+    )
+
+
+    c2.metric(
+        "GCP Hotel Coverage",
+        f'€{stats.get("casino_hotel_coverage", 0):,.2f}'
+    )
+
+
+    c3.metric(
+        "Hotel Reimbursements",
+        f'€{stats.get("hotel_reimbursements", 0):,.2f}'
+    )
+
+
+# =========================================================
+# CONTACT
+# =========================================================
+
+elif section == T["contact"]:
+
+    st.markdown(
+        """
+<div class="gold-title">
+📲 Guest Contact
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+    message = (
+        "Grand Casino Portorož\n"
+        "Casino Host AI\n\n"
+        f"Guest: {name}\n"
+        f"Guest ID: {guest_id}\n"
+        f"Tier: {tier}"
+    )
+
+
+    st.link_button(
+        f'💬 {T["whatsapp"]}',
+        whatsapp_url(
+            message
+        ),
         use_container_width=True
-    ):
+    )
 
-        st.session_state.selected_guest = None
-        st.session_state.selected_guest_id = None
-        st.session_state.active_section = "Dashboard"
 
-        st.rerun()
+    email_link = mailto_url(
+        email,
+        "Grand Casino Portorož",
+        f"Dear {name},\n\n"
+    )
+
+
+    if email_link:
+
+        st.link_button(
+            f'✉️ {T["email_guest"]}',
+            email_link,
+            use_container_width=True
+        )
+
+
+    call_link = tel_url(
+        phone
+    )
+
+
+    if call_link:
+
+        st.link_button(
+            f'📞 {T["call"]}',
+            call_link,
+            use_container_width=True
+        )
+
+
+# =========================================================
+# NEW GUEST
+# =========================================================
+
+st.divider()
+
+
+if st.button(
+    f'← {T["another"]}',
+    use_container_width=True
+):
+
+    st.session_state.selected_guest = None
+    st.session_state.selected_guest_id = None
+
+    st.rerun()
+
 
 # =========================================================
 # FOOTER
@@ -897,16 +2249,21 @@ hotela ili druge lokacije.
 
 st.markdown(
     """
+<br><br>
+
 <div style="
 text-align:center;
 color:#777;
 font-size:11px;
 letter-spacing:1px;
-margin-top:35px;
 ">
-GRAND CASINO PORTOROŽ — CASINO HOST AI DEMO CONCEPT
-<br><br>
+
+GRAND CASINO PORTOROŽ — CASINO HOST AI DEMO
+
+<br>
+
 Demonstration prototype • Not an official production system
+
 </div>
 """,
     unsafe_allow_html=True
